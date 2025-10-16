@@ -6,7 +6,9 @@ import { Channel } from '../shared/state/channels.js'
 import { openedUrl, readiedApp } from './state/actions.js'
 import { dispatch, getState } from './state/store.js'
 
-app.on('ready', () => dispatch(readiedApp()))
+app.on('ready', () => {
+  dispatch(readiedApp())
+})
 
 // App doesn't always close on ctrl-c in console, this fixes that
 app.on('before-quit', () => app.exit())

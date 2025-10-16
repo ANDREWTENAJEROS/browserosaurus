@@ -179,8 +179,11 @@ function showPickerWindow(): void {
     }
 
     pickerWindow.setPosition(inWindowPosition.x, inWindowPosition.y, false)
-
+    
+    // Make sure window is visible and focused on current desktop
     pickerWindow.show()
+    pickerWindow.focus()
+    pickerWindow.moveTop()
   }
 }
 
