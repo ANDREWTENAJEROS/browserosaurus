@@ -29,7 +29,8 @@ const useInstalledApps = (): InstalledApp[] => {
 }
 
 const useIsSupportMessageHidden = (): boolean => {
-  return true; // Always hide support message
+  // Always hide support message
+  return true
 }
 
 const useKeyCodeMap = (): Record<string, string> =>
