@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import type { Rectangle } from 'electron'
 import { app, Menu, Tray } from 'electron'
 
 import { clickedOpenPrefs, clickedRestorePicker } from './state/actions.js'
@@ -42,4 +43,8 @@ export function createTray(): void {
       },
     ]),
   )
+}
+
+export function getTrayBounds(): Rectangle | undefined {
+  return tray?.getBounds()
 }

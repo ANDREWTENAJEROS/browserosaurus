@@ -9,6 +9,7 @@ import {
   gotDefaultBrowserStatus,
 } from './state/actions.js'
 import { dispatch } from './state/store.js'
+import { getTrayBounds } from './tray.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -103,6 +104,8 @@ async function createWindows(): Promise<void> {
 
   pickerWindow.setWindowButtonVisibility(false)
 
+  pickerWindow.setAlwaysOnTop(true, 'screen-saver')
+
   pickerWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
   pickerWindow.on('hide', () => {
@@ -118,10 +121,6 @@ async function createWindows(): Promise<void> {
     if (pickerWindow) {
       dispatch(changedPickerWindowBounds(pickerWindow.getBounds()))
     }
-  })
-
-  pickerWindow.on('blur', () => {
-    pickerWindow?.hide()
   })
 
   if (PREFS_WINDOW_VITE_DEV_SERVER_URL && PICKER_WINDOW_VITE_DEV_SERVER_URL) {
@@ -149,37 +148,65 @@ async function createWindows(): Promise<void> {
 
 function showPickerWindow(): void {
   if (pickerWindow) {
-    const displayBounds = screen.getDisplayNearestPoint(
-      screen.getCursorScreenPoint(),
-    ).bounds
+    const trayBounds = getTrayBounds()
+    const windowBounds = pickerWindow.getBounds()
 
-    const displayEnd = {
-      x: displayBounds.x + displayBounds.width,
-      y: displayBounds.y + displayBounds.height,
+    if (trayBounds) {
+      const trayCenterX = trayBounds.x + trayBounds.width / 2
+      const trayReferencePoint = {
+        x: Math.round(trayCenterX),
+        y: Math.round(trayBounds.y),
+      }
+
+      const nearestDisplay = screen.getDisplayNearestPoint(trayReferencePoint)
+      const { bounds: displayBounds } = nearestDisplay
+      const minX = displayBounds.x
+      const maxX = displayBounds.x + displayBounds.width - windowBounds.width
+
+      const centeredX = Math.round(trayCenterX - windowBounds.width / 2)
+      const clampedX = Math.min(Math.max(centeredX, minX), maxX)
+
+      const verticalOffset = 6
+      const menuBarIsTopAligned =
+        trayBounds.y <= displayBounds.y + displayBounds.height / 2
+
+      const yPosition = menuBarIsTopAligned
+        ? Math.round(trayBounds.y + trayBounds.height + verticalOffset)
+        : Math.round(trayBounds.y - windowBounds.height - verticalOffset)
+
+      pickerWindow.setPosition(clampedX, yPosition, false)
+    } else {
+      const cursorPoint = screen.getCursorScreenPoint()
+      const nearestDisplay = screen.getDisplayNearestPoint(cursorPoint)
+      const { bounds: displayBounds } = nearestDisplay
+      const displayEnd = {
+        x: displayBounds.x + displayBounds.width,
+        y: displayBounds.y + displayBounds.height,
+      }
+
+      const nudge = {
+        x: -125,
+        y: -30,
+      }
+
+      const fallbackPosition = {
+        x:
+          cursorPoint.x + windowBounds.width + nudge.x > displayEnd.x
+            ? displayEnd.x - windowBounds.width
+            : cursorPoint.x + nudge.x,
+        y:
+          cursorPoint.y + windowBounds.height + nudge.y > displayEnd.y
+            ? displayEnd.y - windowBounds.height
+            : cursorPoint.y + nudge.y,
+      }
+
+      pickerWindow.setPosition(
+        fallbackPosition.x,
+        fallbackPosition.y,
+        false,
+      )
     }
 
-    const mousePoint = screen.getCursorScreenPoint()
-
-    const bWindowBounds = pickerWindow.getBounds()
-
-    const nudge = {
-      x: -125,
-      y: -30,
-    }
-
-    const inWindowPosition = {
-      x:
-        mousePoint.x + bWindowBounds.width + nudge.x > displayEnd.x
-          ? displayEnd.x - bWindowBounds.width
-          : mousePoint.x + nudge.x,
-      y:
-        mousePoint.y + bWindowBounds.height + nudge.y > displayEnd.y
-          ? displayEnd.y - bWindowBounds.height
-          : mousePoint.y + nudge.y,
-    }
-
-    pickerWindow.setPosition(inWindowPosition.x, inWindowPosition.y, false)
-    
     // Make sure window is visible and focused on current desktop
     pickerWindow.show()
     pickerWindow.focus()
